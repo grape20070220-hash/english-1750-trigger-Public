@@ -66,28 +66,27 @@ jobs:
           w.scrollTo=()=>{};w.prompt=()=>null;w.confirm=()=>false;
           w.speechSynthesis={cancel(){},getVoices(){return[]},speak(){}};w.SpeechSynthesisUtterance=function(t){this.text=t};
           w.Notification={permission:'default',requestPermission:async()=> 'default'};
-          const evalFile=p=>w.eval(fs.readFileSync(p,'utf8')+`\n//# sourceURL=${p}`);
-          evalFile('site/config.js');
-          for(let i=0;i<6;i++)evalFile(`site/data-${String(i).padStart(2,'0')}.js`);
-          for(const p of ['site/ui-core-a.js','site/ui-core-b.js','site/ui-core-c.js','site/ui-core-d.js','site/ui-core-e.js'])evalFile(p);
-          try{evalFile('site/app.js');evalFile('site/push-patch.js')}catch(e){console.error('APP_RUNTIME_ERROR',e&&e.stack||e);process.exit(2)}
+          const files=['site/config.js','site/data-00.js','site/data-01.js','site/data-02.js','site/data-03.js','site/data-04.js','site/data-05.js','site/ui-core-a.js','site/ui-core-b.js','site/ui-core-c.js','site/ui-core-d.js','site/ui-core-e.js','site/app.js','site/push-patch.js'];
+          const source=files.map(p=>`\n/* ${p} */\n`+fs.readFileSync(p,'utf8')).join('\n');
+          try{w.eval(source)}catch(e){console.error('APP_RUNTIME_ERROR',e&&e.stack||e);process.exit(2)}
           const dash=w.document.getElementById('page-dashboard');
+          console.log('WORDS=',w.WORDS?.length);
           console.log('dashboard_chars=',dash.innerHTML.length);
           console.log('quickReview_handler=',typeof w.document.getElementById('quickReview').onclick);
           if((w.WORDS?.length||0)!==1750||dash.innerHTML.length<1000||typeof w.document.getElementById('quickReview').onclick!=='function')process.exit(3);
-          w.go('tests');
+          go('tests');
           const tests=w.document.getElementById('page-tests');
           console.log('tests_chars=',tests.innerHTML.length);
           if(tests.innerHTML.length<1000)process.exit(4);
-          w.go('vocab');
+          go('vocab');
           const vocab=w.document.getElementById('page-vocab');
           console.log('vocab_chars=',vocab.innerHTML.length);
           if(vocab.innerHTML.length<500)process.exit(5);
-          w.go('review');
+          go('review');
           if(w.document.getElementById('page-review').innerHTML.length<300)process.exit(6);
-          w.go('stats');
+          go('stats');
           if(w.document.getElementById('page-stats').innerHTML.length<500)process.exit(7);
-          w.go('settings');
+          go('settings');
           if(w.document.getElementById('page-settings').innerHTML.length<1000)process.exit(8);
           console.log('UI_SMOKE=PASS');
           NODE
