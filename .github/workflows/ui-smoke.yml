@@ -21,6 +21,7 @@ jobs:
           node --check site/ui-core-b.js
           node --check site/ui-core-c.js
           node --check site/ui-core-d.js
+          node --check site/ui-core-e.js
           node --check site/app.js
           node --check site/push-patch.js
           node --check site/sw.js
@@ -29,7 +30,7 @@ jobs:
         run: |
           node <<'NODE'
           const fs=require('fs');
-          const files=['site/ui-core-a.js','site/ui-core-b.js','site/ui-core-c.js','site/ui-core-d.js','site/app.js'];
+          const files=['site/ui-core-a.js','site/ui-core-b.js','site/ui-core-c.js','site/ui-core-d.js','site/ui-core-e.js','site/app.js'];
           const s=files.map(p=>fs.readFileSync(p,'utf8')).join('\n');
           const got=new Set([...s.matchAll(/(?:async\s+)?function\s+([A-Za-z0-9_]+)/g)].map(m=>m[1]));
           const expected=`answerChoice checkTyped choiceHtml coreJa disablePush drawVocabRows dueTimesForPush dueWords enablePush escapeAttr escapeHtml exportProgress filterPool finishAnswer fmtDue getPushDeviceToken getPushSubscription getWord go importProgress initPWA installApp isDue isMastered levenshtein loadSettings loadState makeOptions masteryPct modeCard nextQuestion normalizeEn normalizeJa notificationSettingsCard onePoint openMobileNav previewVoice pushPayload pushStatusText pushSupported record render renderDashboard renderQuestion renderReview renderSessionDone renderSettings renderStats renderTests renderVocab resetProgress saveNotificationForm saveSettingForm saveSettings saveState schedulePushSync sectionLabel selectMode setSt shuffle similarity speak speakCurrent st startConfiguredTest startQuickReview startRecognition startSession submitTyped summary syncPushState testPushNotification testSettingVoice toast toggleFav toggleFavCurrent typedHtml updateBadge updatePushBell urlBase64ToUint8Array vocabFiltered`.split(/\s+/);
@@ -68,7 +69,7 @@ jobs:
           const evalFile=p=>w.eval(fs.readFileSync(p,'utf8')+`\n//# sourceURL=${p}`);
           evalFile('site/config.js');
           for(let i=0;i<6;i++)evalFile(`site/data-${String(i).padStart(2,'0')}.js`);
-          for(const p of ['site/ui-core-a.js','site/ui-core-b.js','site/ui-core-c.js','site/ui-core-d.js'])evalFile(p);
+          for(const p of ['site/ui-core-a.js','site/ui-core-b.js','site/ui-core-c.js','site/ui-core-d.js','site/ui-core-e.js'])evalFile(p);
           try{evalFile('site/app.js');evalFile('site/push-patch.js')}catch(e){console.error('APP_RUNTIME_ERROR',e&&e.stack||e);process.exit(2)}
           const dash=w.document.getElementById('page-dashboard');
           console.log('dashboard_chars=',dash.innerHTML.length);
@@ -86,5 +87,7 @@ jobs:
           if(w.document.getElementById('page-review').innerHTML.length<300)process.exit(6);
           w.go('stats');
           if(w.document.getElementById('page-stats').innerHTML.length<500)process.exit(7);
+          w.go('settings');
+          if(w.document.getElementById('page-settings').innerHTML.length<1000)process.exit(8);
           console.log('UI_SMOKE=PASS');
           NODE
