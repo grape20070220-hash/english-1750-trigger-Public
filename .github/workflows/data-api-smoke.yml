@@ -11,17 +11,19 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    env:
+      API: https://ep-gentle-block-axg7zg5x.apirest.c-4.us-east-2.aws.neon.tech/neondb/rest/v1
+      CLIENT_JWT: eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImVuZ2xpc2gxNzUwLWNsaWVudC12MSJ9.eyJpc3MiOiJlbmdsaXNoMTc1MC1wdWJsaWMtY2xpZW50Iiwic3ViIjoiZW5nbGlzaDE3NTAtcHVibGljLWNsaWVudCIsInJvbGUiOiJhbm9ueW1vdXMiLCJpYXQiOjE3ODY5NDIwNzQsIm5iZiI6MTc4Njk0MjA3NCwiZXhwIjoyMTAyMzAyMTM0fQ.Vdc10zXH_0VrR0lLkMcRvcu7KNTS4SvfL5JP554cC4SBFLBT_20vtDlmQGD7rgfdEKNB-H16XwbAbBQ2Dx0F7w
     steps:
-      - name: Test anonymous RPC registration and cleanup
+      - name: Test restricted JWT RPC registration and cleanup
         shell: bash
-        env:
-          API: https://ep-gentle-block-axg7zg5x.apirest.c-4.us-east-2.aws.neon.tech/neondb/rest/v1
         run: |
           set -euo pipefail
           token="smoke-$(date +%s)-0123456789abcdef"
           endpoint="https://example.invalid/push/$token"
           body="$(mktemp)"
           code="$(curl --show-error --silent -X POST \
+            -H "Authorization: Bearer $CLIENT_JWT" \
             -H 'Content-Type: application/json' -H 'Accept: application/json' \
             --data "{\"p_device_token\":\"$token\",\"p_subscription\":{\"endpoint\":\"$endpoint\",\"keys\":{\"p256dh\":\"fake\",\"auth\":\"fake\"}},\"p_prefs\":{\"enabled\":true},\"p_due_times\":[],\"p_timezone\":\"Asia/Tokyo\"}" \
             --output "$body" --write-out '%{http_code}' \
@@ -32,6 +34,7 @@ jobs:
 
           body2="$(mktemp)"
           code2="$(curl --show-error --silent -X POST \
+            -H "Authorization: Bearer $CLIENT_JWT" \
             -H 'Content-Type: application/json' -H 'Accept: application/json' \
             --data "{\"p_device_token\":\"$token\"}" \
             --output "$body2" --write-out '%{http_code}' \
