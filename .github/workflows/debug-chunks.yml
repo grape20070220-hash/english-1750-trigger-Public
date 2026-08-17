@@ -1,0 +1,29 @@
+name: Debug bootstrap chunks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/debug-chunks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hashes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Print block hashes
+        run: |
+          for f in .bootstrap/part06 .bootstrap/part07; do
+            echo "FILE=$f SIZE=$(wc -c < "$f")"
+            split -b 1000 -d -a 2 "$f" /tmp/block-
+            i=0
+            for b in /tmp/block-*; do
+              echo "$i $(sha256sum "$b" | cut -d' ' -f1)"
+              i=$((i+1))
+            done
+            rm -f /tmp/block-*
+          done
