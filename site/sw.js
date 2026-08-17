@@ -1,4 +1,4 @@
-const CACHE='english1750-pages-v3';
+const CACHE='english1750-pages-v5';
 const ASSETS=['./','./index.html','./style.css','./config.js','./data-00.js','./data-01.js','./data-02.js','./data-03.js','./data-04.js','./data-05.js','./app.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
