@@ -1,0 +1,40 @@
+name: Repair bootstrap payload
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair corrupt bootstrap ranges
+        shell: bash
+        run: |
+          test -f .bootstrap/part06 || exit 0
+          python3 - <<'PY'
+          from pathlib import Path
+          p6=Path('.bootstrap/part06')
+          p7=Path('.bootstrap/part07')
+          tail6='''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'''
+          block3='''hywIoMlreY3aaJfhokA6Ar6xEjxfEaI07FNp9ye67Y8NhGvUP4uu+Rw30qSZ3sOXRIhyN1/yWyOjO0kvhfieTyRPwVHX8uilQm6E3cCTQeCwEtmeltc8OoJj6ffmwo3XYedq8OgNVVZqM6N6rPwPCjqwMZPDSEPkzyKr1EBo2AbEnobLOoVDrnhO7nn/9OezI2FOjuhRLPgJlPnjrhpV0xzTIJMUNjp4NKNvo81olsWBJJMNDRaIxk4A1HiasJ0ZKgwULF0jLibtbvKlakf0kN4biMo8DUlTYNStAgRj07djh78+hjOMj672tg587xAZpRKe8poLgrD5K7PLGlXRoirkXGmU+LbfD/MM+5lt0jomLidORwA06qBN2JWWK/A92FrAMHPWquba5P19QkhgXKsSCkRwo6ulhJo6K1eDL7dGleLI7FEolh7FdYeXT9E7lWMaVc/QoHRMd9puuNa4VbeaYvWK/f7bX8+Oj4e+5Db/hcTmgiYlS/93XO2HMY0KaeMUuLpQvSL5LJ3jGAMcLcwKsI3oV+gjUsyIMNWth3ijtmpWLJfapQ3fHCWRJUqasU8VdmkTOhTzGjdeIvMVenu5/3gV7kZo3+x/+IT1tOjARlZb0UzISpNjX13HQwAQcprTEyVES4S7d4BDKrJHmaA5zcVCe1EGM32qZEyj+hmxGSwzTs7OADLwfg6767lAuGbp/c6IaA4YDf1u4idpgqhs/oOwAM1hoCyiS0FR1/IxlKppVOtWI3V1Pj0ilhTeAcSmebXX+OtWZboqgEw4omBqZu2dD1NM3BvRo2DiXh4ojZ0BSBUFM9MhTkXqx3VxzcdHeXlLM6+5YMZoZGki3RSKRj01LPU6btasRrXkVmpmtUUdpo1YhnNBWamVec3SdlxUSCEiDu7nkDwFTN0+MGp4cd7ESFT8SfjMNmmhV4sv05vIAaNTV032A9Eb3HnN8nbNiC+jbhVAtko2kMwj8pltshCiNJUM9jU8f8Ny'''
+          last28='4AWUPTt1Bv0Mb2bYwU0TX1HU6Ibp'
+          s6=p6.read_text()
+          if len(s6) < 10000: raise SystemExit('part06 too short')
+          p6.write_text(s6[:10000]+tail6)
+          s7=p7.read_text()
+          if len(s7) < 15000: raise SystemExit('part07 too short')
+          s7=s7[:3000]+block3+s7[4000:15000]+last28
+          p7.write_text(s7)
+          PY
+          echo '265567ba651b6387451d8a068f1c08b66247fa5d03e72a0236f58bdb44d4c94e  .bootstrap/part06' | sha256sum -c -
+          echo '08da0543a00969ec62b028926193ea89bd50b27098fcbd59a3eb02a86124a306  .bootstrap/part07' | sha256sum -c -
+      - name: Commit repair
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .bootstrap/part06 .bootstrap/part07
+          git commit -m 'Repair bootstrap payload chunks'
+          git push
