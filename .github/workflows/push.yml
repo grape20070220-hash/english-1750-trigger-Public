@@ -49,7 +49,7 @@ jobs:
         run: |
           body="$(mktemp)"
           code="$(curl --location --show-error --silent -X POST \
-            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H "X-GitHub-OIDC: $OIDC_TOKEN" \
             -H 'Content-Type: application/json' \
             --output "$body" --write-out '%{http_code}' \
             'https://english-1750-trainer-grape20070220-7830s-projects.vercel.app/api/cron')"
