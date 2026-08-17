@@ -45,3 +45,5 @@ jobs:
           DATA_API_URL: https://ep-gentle-flower-axl1t1zm.apirest.c-4.us-east-2.aws.neon.tech/neondb/rest/v1
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
         run: node scripts/send-notifications-oidc.mjs
+
+# Immediate delivery verification commit: 2026-08-17
