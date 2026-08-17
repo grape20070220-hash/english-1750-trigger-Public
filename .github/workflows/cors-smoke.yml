@@ -1,0 +1,25 @@
+name: Push Registration CORS Check
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cors-smoke.yml']
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check browser preflight
+        shell: bash
+        run: |
+          curl --silent --show-error --dump-header headers.txt --output body.txt -X OPTIONS \
+            -H 'Origin: https://grape20070220-hash.github.io' \
+            -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: authorization,content-type' \
+            'https://ep-gentle-flower-axl1t1zm.apirest.c-4.us-east-2.aws.neon.tech/neondb/rest/v1/rpc/sync_push_device'
+          echo '--- headers ---'
+          cat headers.txt
+          echo '--- body ---'
+          cat body.txt
