@@ -24,15 +24,13 @@ jobs:
           token="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])' <<<"$response")"
           kid="$(python3 -c 'import base64,json,sys; p=sys.argv[1].split(".")[0]; p += "="*((4-len(p)%4)%4); print(json.loads(base64.urlsafe_b64decode(p))["kid"])' "$token")"
           echo "oidc_kid=$kid"
-          echo 'published_kids:'
-          curl --fail --show-error --silent 'https://raw.githubusercontent.com/grape20070220-hash/english-1750-trigger-Public/main/site/jwks.json' | jq -r '.keys[].kid'
           echo "::add-mask::$token"
           echo "token=$token" >> "$GITHUB_OUTPUT"
       - name: Verify OIDC against Neon Data API
         shell: bash
         env:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
-          API: https://ep-gentle-block-axg7zg5x.apirest.c-4.us-east-2.aws.neon.tech/neondb/rest/v1
+          API: https://ep-gentle-flower-axl1t1zm.apirest.c-4.us-east-2.aws.neon.tech/neondb/rest/v1
         run: |
           body="$(mktemp)"
           code="$(curl --show-error --silent -X POST -H "Authorization: Bearer $OIDC_TOKEN" -H 'Content-Type: application/json' -H 'Accept: application/json' --data '{}' --output "$body" --write-out '%{http_code}' "$API/rpc/scheduler_claims")"
