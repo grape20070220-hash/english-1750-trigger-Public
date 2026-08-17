@@ -1,0 +1,41 @@
+name: Neon Data API Smoke Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/data-api-smoke.yml'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Test anonymous RPC registration and cleanup
+        shell: bash
+        env:
+          API: https://ep-gentle-block-axg7zg5x.apirest.c-4.us-east-2.aws.neon.tech/neondb/rest/v1
+        run: |
+          set -euo pipefail
+          token="smoke-$(date +%s)-0123456789abcdef"
+          endpoint="https://example.invalid/push/$token"
+          body="$(mktemp)"
+          code="$(curl --show-error --silent -X POST \
+            -H 'Content-Type: application/json' -H 'Accept: application/json' \
+            --data "{\"p_device_token\":\"$token\",\"p_subscription\":{\"endpoint\":\"$endpoint\",\"keys\":{\"p256dh\":\"fake\",\"auth\":\"fake\"}},\"p_prefs\":{\"enabled\":true},\"p_due_times\":[],\"p_timezone\":\"Asia/Tokyo\"}" \
+            --output "$body" --write-out '%{http_code}' \
+            "$API/rpc/sync_push_device")"
+          echo "sync_status=$code"
+          cat "$body"; echo
+          test "$code" = '200'
+
+          body2="$(mktemp)"
+          code2="$(curl --show-error --silent -X POST \
+            -H 'Content-Type: application/json' -H 'Accept: application/json' \
+            --data "{\"p_device_token\":\"$token\"}" \
+            --output "$body2" --write-out '%{http_code}' \
+            "$API/rpc/unsubscribe_push_device")"
+          echo "cleanup_status=$code2"
+          cat "$body2"; echo
+          test "$code2" = '200'
