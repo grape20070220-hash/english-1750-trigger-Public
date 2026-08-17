@@ -1,0 +1,46 @@
+name: Expand English 1750 PWA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.bootstrap/**'
+      - '.github/workflows/bootstrap.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  expand:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild and verify payload
+        run: |
+          test -f .bootstrap/part00 || exit 0
+          {
+            cat .bootstrap/part00
+            cat .bootstrap/part01
+            cat .bootstrap/part02
+            cat .bootstrap/part03
+            cat .bootstrap/part04
+            cat .bootstrap/part05
+            cat .bootstrap/part06
+            head -c 15028 .bootstrap/part07
+            cat .bootstrap/part08
+            cat .bootstrap/part09
+            cat .bootstrap/part10
+          } > /tmp/payload.b64
+          base64 -d /tmp/payload.b64 > /tmp/english1750.zip
+          echo "7fe94314d8e7950a4830ddf4ed25add7781e97bb14a0fb69a024c100578cc127  /tmp/english1750.zip" | sha256sum -c -
+          unzip -o /tmp/english1750.zip
+          rm -rf .bootstrap
+      - name: Commit expanded PWA
+        run: |
+          if [ ! -d site ]; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'build: expand English 1750 PWA' || exit 0
+          git push
