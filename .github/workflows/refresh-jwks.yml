@@ -1,0 +1,41 @@
+name: Refresh English 1750 JWKS
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/refresh-jwks.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Merge client key with current GitHub OIDC keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --silent \
+            https://token.actions.githubusercontent.com/.well-known/jwks \
+            -o /tmp/github-jwks.json
+          jq -n \
+            --slurpfile gh /tmp/github-jwks.json \
+            '{keys: ([{"kty":"EC","crv":"P-256","use":"sig","alg":"ES256","kid":"english1750-client-v1","x":"IoEaT_XOci34QwRzGNGNFw0S_o7u6sd7eEY95h1_DJk","y":"F6gcUeP2U9F_2_N8yR_uPy4_HJd1x9MVe0E8VkZOcD0"}] + $gh[0].keys)}' \
+            > site/jwks.json
+          jq -e '.keys | length >= 2' site/jwks.json >/dev/null
+      - name: Commit JWKS rotation if changed
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add site/jwks.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'chore: refresh GitHub OIDC JWKS'
+          git push
