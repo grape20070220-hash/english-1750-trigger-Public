@@ -1,0 +1,43 @@
+name: GitHub OIDC Neon Smoke Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/oidc-smoke.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Request GitHub OIDC token
+        id: oidc
+        shell: bash
+        run: |
+          response="$(curl --fail --show-error --silent \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=english1750-scheduler")"
+          token="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])' <<<"$response")"
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+      - name: Verify OIDC against Neon Data API
+        shell: bash
+        env:
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+          API: https://ep-gentle-block-axg7zg5x.apirest.c-4.us-east-2.aws.neon.tech/neondb/rest/v1
+        run: |
+          body="$(mktemp)"
+          code="$(curl --show-error --silent -X POST \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H 'Content-Type: application/json' -H 'Accept: application/json' \
+            --data '{}' --output "$body" --write-out '%{http_code}' \
+            "$API/rpc/scheduler_claims")"
+          echo "status=$code"
+          cat "$body"; echo
+          test "$code" = '200'
