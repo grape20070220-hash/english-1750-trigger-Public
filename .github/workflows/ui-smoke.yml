@@ -3,28 +3,40 @@ name: English 1750 UI Smoke
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/ui-smoke.yml']
+    paths:
+      - '.github/workflows/ui-smoke.yml'
+      - 'site/**'
   workflow_dispatch:
 
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 4
     steps:
       - uses: actions/checkout@v4
-      - name: Check app JavaScript syntax
-        run: node --check site/app.js
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          node --check site/ui-core-a.js
+          node --check site/ui-core-b.js
+          node --check site/ui-core-c.js
+          node --check site/ui-core-d.js
+          node --check site/app.js
+          node --check site/push-patch.js
+          node --check site/sw.js
       - name: Compare expected UI functions
         shell: bash
         run: |
           node <<'NODE'
           const fs=require('fs');
-          const s=fs.readFileSync('site/app.js','utf8');
+          const files=['site/ui-core-a.js','site/ui-core-b.js','site/ui-core-c.js','site/ui-core-d.js','site/app.js'];
+          const s=files.map(p=>fs.readFileSync(p,'utf8')).join('\n');
           const got=new Set([...s.matchAll(/(?:async\s+)?function\s+([A-Za-z0-9_]+)/g)].map(m=>m[1]));
           const expected=`answerChoice checkTyped choiceHtml coreJa disablePush drawVocabRows dueTimesForPush dueWords enablePush escapeAttr escapeHtml exportProgress filterPool finishAnswer fmtDue getPushDeviceToken getPushSubscription getWord go importProgress initPWA installApp isDue isMastered levenshtein loadSettings loadState makeOptions masteryPct modeCard nextQuestion normalizeEn normalizeJa notificationSettingsCard onePoint openMobileNav previewVoice pushPayload pushStatusText pushSupported record render renderDashboard renderQuestion renderReview renderSessionDone renderSettings renderStats renderTests renderVocab resetProgress saveNotificationForm saveSettingForm saveSettings saveState schedulePushSync sectionLabel selectMode setSt shuffle similarity speak speakCurrent st startConfiguredTest startQuickReview startRecognition startSession submitTyped summary syncPushState testPushNotification testSettingVoice toast toggleFav toggleFavCurrent typedHtml updateBadge updatePushBell urlBase64ToUint8Array vocabFiltered`.split(/\s+/);
           const missing=expected.filter(x=>!got.has(x));
           console.log('FUNCTION_COUNT='+got.size);
           console.log('MISSING='+missing.join(' '));
+          if(missing.length)process.exit(1);
           NODE
       - name: Check all 1750 vocabulary items load
         shell: bash
@@ -40,7 +52,7 @@ jobs:
           console.log('WORDS='+n);
           if(n!==1750) process.exit(1);
           NODE
-      - name: Run browser-like dashboard initialization
+      - name: Run browser-like learning UI
         shell: bash
         run: |
           npm install --no-save --ignore-scripts --no-audit --no-fund jsdom@26
@@ -52,13 +64,27 @@ jobs:
           const w=dom.window;
           w.scrollTo=()=>{};w.prompt=()=>null;w.confirm=()=>false;
           w.speechSynthesis={cancel(){},getVoices(){return[]},speak(){}};w.SpeechSynthesisUtterance=function(t){this.text=t};
-          w.Notification={permission:'granted',requestPermission:async()=> 'granted'};
-          Object.defineProperty(w.navigator,'serviceWorker',{value:undefined,configurable:true});
+          w.Notification={permission:'default',requestPermission:async()=> 'default'};
           const evalFile=p=>w.eval(fs.readFileSync(p,'utf8')+`\n//# sourceURL=${p}`);
-          evalFile('site/config.js');for(let i=0;i<6;i++)evalFile(`site/data-${String(i).padStart(2,'0')}.js`);
-          console.log('WORDS before app=',w.WORDS?.length);
-          try{evalFile('site/app.js')}catch(e){console.error('APP_RUNTIME_ERROR',e&&e.stack||e);process.exit(2)}
-          const dashboard=w.document.getElementById('page-dashboard');
-          console.log('dashboard_chars=',dashboard.innerHTML.length);console.log('quickReview_handler=',typeof w.document.getElementById('quickReview').onclick);
-          if(dashboard.innerHTML.length<500||typeof w.document.getElementById('quickReview').onclick!=='function')process.exit(5);
+          evalFile('site/config.js');
+          for(let i=0;i<6;i++)evalFile(`site/data-${String(i).padStart(2,'0')}.js`);
+          for(const p of ['site/ui-core-a.js','site/ui-core-b.js','site/ui-core-c.js','site/ui-core-d.js'])evalFile(p);
+          try{evalFile('site/app.js');evalFile('site/push-patch.js')}catch(e){console.error('APP_RUNTIME_ERROR',e&&e.stack||e);process.exit(2)}
+          const dash=w.document.getElementById('page-dashboard');
+          console.log('dashboard_chars=',dash.innerHTML.length);
+          console.log('quickReview_handler=',typeof w.document.getElementById('quickReview').onclick);
+          if((w.WORDS?.length||0)!==1750||dash.innerHTML.length<1000||typeof w.document.getElementById('quickReview').onclick!=='function')process.exit(3);
+          w.go('tests');
+          const tests=w.document.getElementById('page-tests');
+          console.log('tests_chars=',tests.innerHTML.length);
+          if(tests.innerHTML.length<1000)process.exit(4);
+          w.go('vocab');
+          const vocab=w.document.getElementById('page-vocab');
+          console.log('vocab_chars=',vocab.innerHTML.length);
+          if(vocab.innerHTML.length<500)process.exit(5);
+          w.go('review');
+          if(w.document.getElementById('page-review').innerHTML.length<300)process.exit(6);
+          w.go('stats');
+          if(w.document.getElementById('page-stats').innerHTML.length<500)process.exit(7);
+          console.log('UI_SMOKE=PASS');
           NODE
