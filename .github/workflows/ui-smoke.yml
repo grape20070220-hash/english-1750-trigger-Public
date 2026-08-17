@@ -9,7 +9,7 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
       - name: Check app JavaScript syntax
@@ -27,4 +27,34 @@ jobs:
           const n=ctx.window.WORDS?.length||0;
           console.log('WORDS='+n);
           if(n!==1750) process.exit(1);
+          NODE
+      - name: Run browser-like dashboard initialization
+        shell: bash
+        run: |
+          npm install --no-save --ignore-scripts --no-audit --no-fund jsdom@26
+          node <<'NODE'
+          const fs=require('fs');
+          const {JSDOM}=require('jsdom');
+          let html=fs.readFileSync('site/index.html','utf8').replace(/<script[\s\S]*?<\/script>/g,'');
+          const dom=new JSDOM(html,{url:'https://grape20070220-hash.github.io/english-1750-trigger-Public/',runScripts:'outside-only'});
+          const w=dom.window;
+          w.scrollTo=()=>{};
+          w.prompt=()=>null;
+          w.confirm=()=>false;
+          w.speechSynthesis={cancel(){},getVoices(){return[]},speak(){}};
+          w.SpeechSynthesisUtterance=function(t){this.text=t};
+          w.Notification={permission:'granted',requestPermission:async()=> 'granted'};
+          Object.defineProperty(w.navigator,'serviceWorker',{value:undefined,configurable:true});
+          const evalFile=p=>w.eval(fs.readFileSync(p,'utf8')+`\n//# sourceURL=${p}`);
+          evalFile('site/config.js');
+          for(let i=0;i<6;i++) evalFile(`site/data-${String(i).padStart(2,'0')}.js`);
+          console.log('WORDS before app=',w.WORDS?.length);
+          try{evalFile('site/app.js')}catch(e){console.error('APP_RUNTIME_ERROR',e&&e.stack||e);process.exit(2)}
+          const dashboard=w.document.getElementById('page-dashboard');
+          console.log('dashboard_chars=',dashboard.innerHTML.length);
+          console.log('nav_buttons=',w.document.querySelectorAll('#nav button').length);
+          console.log('quickReview_handler=',typeof w.document.getElementById('quickReview').onclick);
+          if((w.WORDS?.length||0)!==1750)process.exit(3);
+          if(dashboard.innerHTML.length<500)process.exit(4);
+          if(typeof w.document.getElementById('quickReview').onclick!=='function')process.exit(5);
           NODE
