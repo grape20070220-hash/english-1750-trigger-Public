@@ -1,5 +1,5 @@
-const CACHE='english1750-pages-v5';
-const ASSETS=['./','./index.html','./style.css','./config.js','./data-00.js','./data-01.js','./data-02.js','./data-03.js','./data-04.js','./data-05.js','./app.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE='english1750-pages-v7';
+const ASSETS=['./','./index.html','./style.css','./config.js','./data-00.js','./data-01.js','./data-02.js','./data-03.js','./data-04.js','./data-05.js','./ui-core-a.js','./ui-core-b.js','./ui-core-c.js','./ui-core-d.js','./app.js','./push-patch.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',event=>{const u=new URL(event.request.url);if(u.pathname.startsWith('/api/')||event.request.method!=='GET')return;if(event.request.mode==='navigate'){event.respondWith(fetch(event.request).then(res=>{if(res&&res.ok){const copy=res.clone();caches.open(CACHE).then(c=>c.put('./index.html',copy)).catch(()=>{})}return res}).catch(()=>caches.match('./index.html')));return}event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request).then(res=>{if(res&&res.ok&&u.origin===location.origin){const copy=res.clone();caches.open(CACHE).then(c=>c.put(event.request,copy))}return res}))) });
