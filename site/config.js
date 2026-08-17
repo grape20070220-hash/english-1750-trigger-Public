@@ -1,0 +1,1 @@
+window.ENGLISH1750_CONFIG={dataApiUrl:'https://ep-gentle-block-axg7zg5x.apirest.c-4.us-east-2.aws.neon.tech/neondb/rest/v1',vapidPublicKey:"BFsRqhphuRKfr3ia4K_3W47Mhxk1JkksNeuZj047x1N92UB9iO8DLrzwL8OCdVxCOopiZlegqIlVvJFavHu3Niw"};
