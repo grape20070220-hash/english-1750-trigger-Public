@@ -1,0 +1,50 @@
+name: English 1750 Secure Push Scheduler
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/push.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: english-1750-secure-push
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check production and database
+        shell: bash
+        run: |
+          curl --fail --show-error --silent --retry 6 --retry-delay 5 \
+            'https://english-1750-trainer-grape20070220-7830s-projects.vercel.app/api/health'
+          echo
+      - name: Request GitHub OIDC token
+        id: oidc
+        shell: bash
+        run: |
+          response="$(curl --fail --show-error --silent \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=english1750-cron")"
+          token="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])' <<<"$response")"
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+      - name: Trigger secure notification worker
+        shell: bash
+        env:
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+        run: |
+          curl --fail --show-error --silent -X POST \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H 'Content-Type: application/json' \
+            'https://english-1750-trainer-grape20070220-7830s-projects.vercel.app/api/cron'
+          echo
