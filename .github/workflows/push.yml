@@ -51,8 +51,8 @@ jobs:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
         run: |
           body="$(mktemp)"
-          code="$(curl --location-trusted --show-error --silent -X POST \
-            -H "Authorization: Bearer $OIDC_TOKEN" \
+          code="$(curl --location --show-error --silent -X POST \
+            -H "X-GitHub-OIDC: $OIDC_TOKEN" \
             -H 'Content-Type: application/json' \
             --output "$body" --write-out '%{http_code}' \
             "$APP_ORIGIN/api/cron")"
