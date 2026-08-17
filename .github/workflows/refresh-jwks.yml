@@ -26,7 +26,7 @@ jobs:
           jq -n --slurpfile gh /tmp/github-jwks.json \
             '{keys: ([{"kty":"RSA","alg":"RS256","use":"sig","kid":"english1750-client-rsa-v1","n":"2mGef7eZV-i0BoYjYnNTVEhMbLJIdQu4UkAy7agSC-wYhOmWc42-sKXBLg4wEHVU0G2k10Hce0XBDFZRLNDMDsTX2yMBm6mXdDRiAWg7eb-ZPM6TOXwoYcoDIb9cxv9_hnXR7AsMdXSMK1ycxVmwB1aNeJqEjeuNcAcNSaapy7qXZq-ysE-2lYi-6CAOkx4t-HkK72x9IBCLcRjHHQE6bunqtZBbHsKcdQ8YLkRf13XgJVERLKY0x1LEkf24BcvyoFCew7NczerPhLvXHEzuOx1OZuFc8kNiJbTYhACAtwCzivPnO0EzU5a91iEb_xHZ_HgNXDqqr12OouUqukHMbQ","e":"AQAB"}] + [$gh[0].keys[] | select(.alg == "RS256")])}' \
             > site/jwks-v3.json
-          jq -e '.keys | length >= 2 and all(.keys[]; .alg == "RS256")' site/jwks-v3.json >/dev/null
+          jq -e '.keys | (length >= 2) and all(.[]; .alg == "RS256")' site/jwks-v3.json >/dev/null
       - name: Commit JWKS rotation if changed
         shell: bash
         run: |
