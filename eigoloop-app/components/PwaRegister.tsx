@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 
-const BUILD_ID = "2026-08-18-webpush-v5";
-const CACHE_NAME = "eigoloop-shell-v5";
+const BUILD_ID = "2026-08-18-learning-coach-v6";
+const CACHE_NAME = "eigoloop-shell-v6";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
