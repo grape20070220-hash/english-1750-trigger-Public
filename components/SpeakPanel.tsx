@@ -18,12 +18,17 @@ export default function SpeakPanel({ me, onChanged }: { me: MeData; onChanged: (
   const [scenario,setScenario]=useState("");
   const [level,setLevel]=useState(me.account.level);
   const [voice,setVoice]=useState(me.account.preferred_voice);
+  const [conversationStyle,setConversationStyle]=useState(me.account.conversation_style || "natural");
+  const [responseLength,setResponseLength]=useState(me.account.response_length || "short");
+  const [speechSpeed,setSpeechSpeed]=useState(me.account.speech_speed || "normal");
+  const [turnPace,setTurnPace]=useState(me.account.turn_pace || "medium");
   const [phase,setPhase]=useState<"setup"|"connecting"|"live"|"analyzing"|"result">("setup");
   const [status,setStatus]=useState("準備中");
   const [error,setError]=useState("");
   const [transcript,setTranscript]=useState<Line[]>([]);
   const [analysis,setAnalysis]=useState<Analysis|null>(null);
   const [reviewAdded,setReviewAdded]=useState(0);
+  const [reviewStrengthened,setReviewStrengthened]=useState(0);
   const [elapsed,setElapsed]=useState(0);
   const [audioNeedsTap,setAudioNeedsTap]=useState(false);
 
@@ -104,7 +109,7 @@ export default function SpeakPanel({ me, onChanged }: { me: MeData; onChanged: (
   }
 
   async function createSession(){
-    await fetch("/api/me",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({level,preferredVoice:voice})});
+    await fetch("/api/me",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({level,preferredVoice:voice,conversationStyle,responseLength,speechSpeed,turnPace})});
     const sRes=await fetch("/api/conversations/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode,scenario:liveScenario()})});
     const sData=await sRes.json();
     if(!sRes.ok) throw new Error(sData.error||"会話の準備に失敗しました");
@@ -145,12 +150,12 @@ export default function SpeakPanel({ me, onChanged }: { me: MeData; onChanged: (
       dc.onmessage=(e)=>handleEvent(e.data);
       dc.onopen=()=>{
         setStatus("AIが会話を始めます");
-        dc.send(JSON.stringify({type:"session.update",session:{type:"realtime",audio:{input:{transcription:{model:"gpt-4o-mini-transcribe"},turn_detection:{type:"semantic_vad",eagerness:"auto",create_response:true,interrupt_response:true}}}}}));
+        dc.send(JSON.stringify({type:"session.update",session:{type:"realtime",audio:{input:{transcription:{model:"gpt-4o-mini-transcribe",language:"en"},turn_detection:{type:"semantic_vad",eagerness:turnPace,create_response:true,interrupt_response:true}}}}}));
         dc.send(JSON.stringify({type:"response.create",response:{instructions:"Start the conversation now. Give a brief, natural opening that fits the scenario, then let the learner respond."}}));
       };
       const offer=await pc.createOffer();
       await pc.setLocalDescription(offer);
-      const r=await fetch("/api/realtime/connect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sdp:offer.sdp,scenario:liveScenario(),level,voice})});
+      const r=await fetch("/api/realtime/connect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sdp:offer.sdp,scenario:liveScenario(),level,voice,conversationStyle,responseLength,speechSpeed})});
       if(!r.ok){
         const d=await r.json().catch(()=>({}));
         throw new Error(d.error||"音声AIに接続できませんでした");
@@ -181,6 +186,7 @@ export default function SpeakPanel({ me, onChanged }: { me: MeData; onChanged: (
     }else{
       setAnalysis(d.analysis);
       setReviewAdded(d.reviewAdded||0);
+      setReviewStrengthened(d.reviewStrengthened||0);
       onChanged();
     }
     setPhase("result");
@@ -193,6 +199,7 @@ export default function SpeakPanel({ me, onChanged }: { me: MeData; onChanged: (
     setAnalysis(null);
     setError("");
     setReviewAdded(0);
+    setReviewStrengthened(0);
   }
 
   if(phase==="connecting"||phase==="analyzing") return <div className="voiceFull"><div className={`voiceOrb ${phase}`}><div className="pulse"/><SparkIcon/></div><h2>{phase==="connecting"?"AIと接続しています":"会話をAIが添削しています"}</h2><p>{phase==="connecting"?"マイクとリアルタイム音声を準備中…":"文法・語彙・自然さを分析して、弱点を復習へ追加します。"}</p><div className="loaderDots"><i/><i/><i/></div></div>;
@@ -203,7 +210,7 @@ export default function SpeakPanel({ me, onChanged }: { me: MeData; onChanged: (
     <section className="scoreBoard card"><div><div className="sectionLabel">総合フィードバック</div><p>{analysis.summary_ja}</p></div><div className="scoreGrid">{Object.entries(analysis.scores).map(([k,v])=><div key={k}><span>{({fluency:"流暢さ",grammar:"文法",vocabulary:"語彙",naturalness:"自然さ"} as any)[k]}</span><strong>{String(v)}</strong><small>/5</small></div>)}</div></section>
     {analysis.strengths_ja?.length>0&&<section className="card resultSection"><div className="sectionLabel">GOOD POINTS</div><h3>今回できていたこと</h3><ul className="strengthList">{analysis.strengths_ja.map((x:string,i:number)=><li key={i}>{x}</li>)}</ul></section>}
     <section className="card resultSection"><div className="sectionLabel">CORRECTIONS</div><h3>次に直したい表現</h3>{analysis.corrections?.length?<div className="bigCorrections">{analysis.corrections.map((c:any,i:number)=><div key={i}><div className="before">{c.original}</div><div className="after">{c.corrected}<button onClick={()=>{const u=new SpeechSynthesisUtterance(c.corrected);u.lang="en-US";speechSynthesis.speak(u)}}><VolumeIcon/></button></div><p>{c.explanation_ja}</p></div>)}</div>:<p>大きく直す必要のある表現はありませんでした。会話がよく通じています。</p>}</section>
-    <div className="reviewAdded"><SparkIcon/><div><strong>{reviewAdded}件を自動復習に追加</strong><span>次回以降、覚えやすいタイミングで出題します。</span></div></div>
+    <div className="reviewAdded"><SparkIcon/><div><strong>{reviewAdded}件を新規追加{reviewStrengthened>0?`・${reviewStrengthened}件を重点復習に強化`:""}</strong><span>同じ弱点が再発すると優先度を上げて早めに再出題します。</span></div></div>
   </>:<section className="card resultSection"><h3>会話は保存しました</h3><p>今回は添削結果を取得できませんでした。履歴には文字起こしを保存しています。</p></section>}<button className="primaryButton full" onClick={reset}>もう一度話す</button></div>;
 
   return <div className="page contentPage speakSetup"><header className="pageHeader"><div><div className="eyebrow">SPEAKING PRACTICE</div><h2>英語で話す</h2></div></header>
@@ -211,6 +218,13 @@ export default function SpeakPanel({ me, onChanged }: { me: MeData; onChanged: (
     <div className="sectionLabel conversationLabel">会話形式</div><section className="modeSwitch"><button className={mode==="free"?"active":""} onClick={()=>setMode("free")}><SparkIcon/><b>フリートーク</b><span>テーマなしでも自由に練習</span></button><button className={mode==="custom"?"active":""} onClick={()=>setMode("custom")}><MicIcon/><b>シチュエーション</b><span>役・場所・展開を自由入力</span></button></section>
     <section className="card setupCard"><label className="fieldLabel">{mode==="free"?"話したいテーマ（空欄でもOK）":"シチュエーションを自由に入力"}<textarea value={scenario} onChange={e=>setScenario(e.target.value)} rows={mode==="free"?3:5} placeholder={mode==="free"?"例：最近ハマっている音楽について話したい":"例：アメリカのレストラン。相手は店員、私は客。注文した後におすすめを聞き、最後に会計まで。"}/></label>{mode==="custom"&&<div className="sampleRow">{scenarioSamples.map((s,i)=><button key={i} onClick={()=>setScenario(s)}>例{i+1}</button>)}</div>}
       <div className="settingsGrid"><label>難易度<select value={level} onChange={e=>setLevel(e.target.value)}><option value="beginner">初心者 — ゆっくり・簡単</option><option value="intermediate">標準 — 日常英会話</option><option value="advanced">上級 — 自然な速度</option></select></label><label>AIの声<select value={voice} onChange={e=>setVoice(e.target.value)}><option value="marin">Marin — 自然・高品質</option><option value="cedar">Cedar — 落ち着き・高品質</option><option value="coral">Coral</option><option value="verse">Verse</option><option value="sage">Sage</option><option value="alloy">Alloy</option></select></label></div>
+      <div className="sectionLabel" style={{marginTop:20}}>会話の自然さ</div>
+      <div className="settingsGrid">
+        <label>会話スタイル<select value={conversationStyle} onChange={e=>setConversationStyle(e.target.value)}><option value="natural">自然 — 雑談らしく反応</option><option value="supportive">やさしい — 話す時間を長めに待つ</option><option value="immersive">没入 — ネイティブ会話寄り</option></select></label>
+        <label>AIの返答量<select value={responseLength} onChange={e=>setResponseLength(e.target.value)}><option value="short">短め — 1〜2文</option><option value="medium">標準 — 2〜4文</option></select></label>
+        <label>話す速さ<select value={speechSpeed} onChange={e=>setSpeechSpeed(e.target.value)}><option value="slow">少しゆっくり</option><option value="normal">自然</option><option value="fast">テンポ良く</option></select></label>
+        <label>返事のタイミング<select value={turnPace} onChange={e=>setTurnPace(e.target.value)}><option value="low">待ち長め — 考える時間を確保</option><option value="medium">自然</option><option value="high">すばやい</option></select></label>
+      </div>
     </section>
     <div className="flowLine"><span><i>1</i>話す</span><b>→</b><span><i>2</i>AI添削</span><b>→</b><span><i>3</i>弱点復習</span></div>
     {error&&<div className="formError">{error}</div>}<button className="primaryButton full large" onClick={start}><MicIcon/> AI会話を始める</button><p className="microcopy centered">OpenAI APIの利用料が発生します。</p>
