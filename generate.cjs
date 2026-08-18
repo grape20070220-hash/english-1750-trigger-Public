@@ -6,6 +6,8 @@ const files=JSON.parse(zlib.brotliDecompressSync(Buffer.from(parts,"base64")).to
 const overrides=new Set([
   "components/SpeakPanel.tsx",
   "components/Dashboard.tsx",
+  "components/HistoryPanel.tsx",
+  "public/sw.js",
   "app/api/conversations/start/route.ts",
   "app/api/conversations/finish/route.ts",
 ]);
