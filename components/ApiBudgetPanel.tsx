@@ -20,6 +20,7 @@ type Budget = {
 
 const BILLING_URL = "https://platform.openai.com/settings/organization/billing/overview";
 const CREDIT_URL = "https://platform.openai.com/settings/organization/billing/credit-grants";
+const PENDING_KEY = "eigoloop-billing-return-pending-v1";
 
 function money(n: number | null | undefined) {
   if (n === null || n === undefined || !Number.isFinite(n)) return "—";
@@ -55,7 +56,17 @@ export default function ApiBudgetPanel() {
     }
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void load();
+    const onUpdated = () => void load();
+    window.addEventListener("eigoloop-budget-updated", onUpdated);
+    return () => window.removeEventListener("eigoloop-budget-updated", onUpdated);
+  }, []);
+
+  function openBilling() {
+    try { localStorage.setItem(PENDING_KEY, JSON.stringify({ openedAt: Date.now() })); } catch {}
+    window.open(BILLING_URL, "_blank", "noopener,noreferrer");
+  }
 
   async function saveBalance(action: "set" | "add") {
     const n = Number(amount);
@@ -75,6 +86,7 @@ export default function ApiBudgetPanel() {
       if (!r.ok) throw new Error(d.error || "save failed");
       setBudget(d);
       setAmount("");
+      window.dispatchEvent(new Event("eigoloop-budget-updated"));
       setNotice(action === "set" ? "残高を同期しました" : "追加購入分を反映しました");
     } catch {
       setNotice("残高の更新に失敗しました");
@@ -104,7 +116,7 @@ export default function ApiBudgetPanel() {
     <header className="pageHeader"><div><div className="eyebrow">API & CREDITS</div><h2>API残量</h2></div></header>
 
     <section className="card apiHero">
-      <div className="apiHeroTop"><div><div className="sectionLabel">EIGOLOOP API METER</div><h2>{loading ? "読み込み中…" : budget?.configured ? minutesText(budget.remainingMinutes) : "残高を設定してください"}</h2><p>今のEigoLoop構成で、あとどれくらい英会話できるかを見える化します。</p></div><div className="apiOrb"><SparkIcon/></div></div>
+      <div className="apiHeroTop"><div><div className="sectionLabel">EIGOLOOP API METER</div><h2>{loading ? "読み込み中…" : budget?.configured ? minutesText(budget.remainingMinutes) : "既存のOpenAI残高を同期"}</h2><p>{budget?.configured?"今のEigoLoop構成で、あとどれくらい英会話できるかを見える化します。":"OpenAIにすでに残っているAPIクレジットも、現在残高を入力すれば最初から残り時間へ含められます。"}</p></div><div className="apiOrb"><SparkIcon/></div></div>
     </section>
 
     {budget?.configured ? <div className="budgetGrid">
@@ -120,15 +132,17 @@ export default function ApiBudgetPanel() {
         <div className="costStats"><div><span>10分あたり</span><b>{money(budget.estimatedCostPer10MinutesUsd)}</b></div><div><span>1分あたり</span><b>{money(budget.estimatedUsdPerMinute)}</b></div><div><span>EigoLoop累計</span><b>{budget.totalConversationMinutes}分</b></div><div><span>累計推定API費</span><b>{money(budget.estimatedTotalCostUsd)}</b></div></div>
       </section>
     </div> : <section className="card creditCard">
-      <div className="sectionLabel">FIRST SETUP</div><h3 style={{margin:"5px 0 7px"}}>OpenAIに表示されている現在の残高を入力</h3><p style={{fontSize:12,color:"#7d8092",lineHeight:1.6}}>一度同期すれば、その時点からEigoLoopで使った推定API料金を差し引いて残り時間を表示します。</p>
-      <div className="creditField"><label>現在のAPI残高（USD）<input type="number" min="0" step="0.01" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="例: 10.00"/></label><button disabled={saving} onClick={()=>saveBalance("set")}>{saving?"保存中…":"残高を同期"}</button></div>
+      <div className="sectionLabel">FIRST SETUP</div><h3 style={{margin:"5px 0 7px"}}>もともとあるOpenAI残高を同期</h3><p style={{fontSize:12,color:"#7d8092",lineHeight:1.6}}>OpenAI Billingに現在表示されている残高をそのまま入力してください。その時点を基準に、以後EigoLoopで使った分を自動で推定差し引きします。</p>
+      <div className="creditActions"><button className="secondary" onClick={()=>window.open(CREDIT_URL,"_blank","noopener,noreferrer")}>OpenAIの現在残高を確認</button></div>
+      <div className="creditField"><label>現在のAPI残高（USD）<input type="number" min="0" step="0.01" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="例: 10.00"/></label><button disabled={saving} onClick={()=>saveBalance("set")}>{saving?"保存中…":"既存残高を同期"}</button></div>
     </section>}
 
     <section className="card creditCard">
-      <div className="sectionLabel">CREDIT CONTROL</div><h3 style={{margin:"5px 0 7px"}}>クレジットを追加・同期</h3><p style={{fontSize:12,color:"#7d8092",lineHeight:1.6}}>購入はOpenAI公式Billingで行います。購入後に金額を反映すると、残り時間メーターもすぐ更新されます。</p>
-      <div className="creditActions"><button onClick={()=>window.open(BILLING_URL,"_blank","noopener,noreferrer")}>OpenAIでクレジットを追加</button><button className="secondary" onClick={()=>window.open(CREDIT_URL,"_blank","noopener,noreferrer")}>公式残高を確認</button></div>
+      <div className="sectionLabel">CREDIT CONTROL</div><h3 style={{margin:"5px 0 7px"}}>クレジットを追加・同期</h3><p style={{fontSize:12,color:"#7d8092",lineHeight:1.6}}>「OpenAIでクレジットを追加」を押したあとEigoLoopへ戻ると、購入額の確認画面が自動で表示されます。$5 / $10 / $20なら1タップで反映できます。</p>
+      <div className="creditActions"><button onClick={openBilling}>OpenAIでクレジットを追加</button><button className="secondary" onClick={()=>window.open(CREDIT_URL,"_blank","noopener,noreferrer")}>公式残高を確認</button></div>
       <div className="creditField"><label>{budget?.configured?"現在残高を再同期 / 追加額を入力":"残高（USD）"}<input type="number" min="0" step="0.01" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="例: 5.00"/></label><button disabled={saving} onClick={()=>saveBalance("set")}>残高を再同期</button>{budget?.configured&&<button className="secondary" disabled={saving} onClick={()=>saveBalance("add")}>購入額を＋反映</button>}</div>
       {notice&&<div className="apiNote">{notice}</div>}
+      <div className="apiNote">購入完了そのものをOpenAI APIから受け取る方式ではなく、Billingを開いた記録を端末に残し、EigoLoopへ戻った瞬間または次回起動時に確認画面を出します。購入しなかった場合は「購入していない」で閉じられます。</div>
       <div className="apiNote">この残高メーターはEigoLoop内の利用を基準にした推定です。OpenAI APIを別アプリでも使った場合や、長い会話でコンテキスト量が増えた場合は実際の残高と差が出るため、ときどき「公式残高を確認」→「残高を再同期」してください。</div>
     </section>
 
