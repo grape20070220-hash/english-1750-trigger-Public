@@ -14,6 +14,7 @@ const directOverrides=new Set([
   "components/SpeakPanel.tsx",
   "lib/auth.ts",
   "lib/webPush.ts",
+  "lib/learning.ts",
   "db/schema.sql",
   "public/sw.js",
   "app/api/me/route.ts",
@@ -27,6 +28,8 @@ const directOverrides=new Set([
   "app/api/push/subscription/route.ts",
   "app/api/push/test/route.ts",
   "app/api/push/cron/[hour]/route.ts",
+  "app/api/mission/route.ts",
+  "app/api/coach/weekly/route.ts",
 ]);
 for(const [name,entry] of Object.entries(files)){
   if(name==="lib/freeAnalysis.ts") continue;
@@ -37,4 +40,4 @@ for(const [name,entry] of Object.entries(files)){
   else fs.writeFileSync(name,String(entry),"utf8");
 }
 if(fs.existsSync("lib/freeAnalysis.ts")) fs.unlinkSync("lib/freeAnalysis.ts");
-console.log(`Generated EigoLoop source with ${directOverrides.size} protected overrides; Web Push enabled`);
+console.log(`Generated EigoLoop source with ${directOverrides.size} protected overrides; learning coach suite enabled`);
