@@ -32,11 +32,14 @@ export default function ApiBudgetSummary({ onOpen }: { onOpen: () => void }) {
         if (active && response.ok) setBudget(data);
       } catch {}
     };
+    const onUpdated = () => void load();
     void load();
     const timer = window.setInterval(load, 60_000);
+    window.addEventListener("eigoloop-budget-updated", onUpdated);
     return () => {
       active = false;
       window.clearInterval(timer);
+      window.removeEventListener("eigoloop-budget-updated", onUpdated);
     };
   }, []);
 
