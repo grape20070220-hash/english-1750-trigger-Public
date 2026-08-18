@@ -7,7 +7,9 @@ const overrides=new Set([
   "components/SpeakPanel.tsx",
   "components/Dashboard.tsx",
   "components/HistoryPanel.tsx",
+  "components/PwaRegister.tsx",
   "public/sw.js",
+  "app/api/version/route.ts",
   "app/api/conversations/start/route.ts",
   "app/api/conversations/finish/route.ts",
 ]);
