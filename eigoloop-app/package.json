@@ -14,12 +14,14 @@
     "next": "^16.0.0",
     "openai": "^5.19.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.6",
     "@types/react-dom": "^19.0.2",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9.17.0",
     "eslint-config-next": "^16.0.0",
     "typescript": "^5.7.2"

@@ -1,4 +1,4 @@
-const CACHE_NAME = "eigoloop-shell-v4";
+const CACHE_NAME = "eigoloop-shell-v5";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE = [OFFLINE_URL, "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
 
@@ -16,6 +16,20 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try { payload = event.data ? event.data.json() : {}; } catch { payload = { body: event.data?.text() || "英語学習の時間です。" }; }
+  const title = payload.title || "EigoLoop";
+  event.waitUntil(self.registration.showNotification(title, {
+    body: payload.body || "今日も少しだけ英語を話そう。",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    tag: payload.tag || "eigoloop-reminder",
+    renotify: false,
+    data: { url: payload.url || "/" },
+  }));
 });
 
 self.addEventListener("notificationclick", (event) => {
