@@ -9,6 +9,7 @@ const directOverrides=new Set([
   "components/AppShell.tsx",
   "components/ApiBudgetPanel.tsx",
   "components/ApiBudgetSummary.tsx",
+  "components/PurchaseReturnPrompt.tsx",
   "components/Dashboard.tsx",
   "components/HistoryPanel.tsx",
   "components/PwaRegister.tsx",
@@ -43,4 +44,4 @@ for(const [name,entry] of Object.entries(files)){
   else fs.writeFileSync(name,String(entry),"utf8");
 }
 if(fs.existsSync("lib/freeAnalysis.ts")) fs.unlinkSync("lib/freeAnalysis.ts");
-console.log(`Generated EigoLoop source with ${directOverrides.size} protected overrides; API budget visibility enabled`);
+console.log(`Generated EigoLoop source with ${directOverrides.size} protected overrides; billing return prompt enabled`);
