@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
   if (transcript.length === 0) {
     await sql`UPDATE conversation_sessions SET transcript = ${JSON.stringify([])}::jsonb, ended_at = now(), duration_seconds = ${durationSeconds} WHERE id = ${sessionId}`;
-    return NextResponse.json({ analysis: null, reviewAdded: 0 });
+    return NextResponse.json({ analysis: null, reviewAdded: 0, reviewStrengthened: 0 });
   }
 
   let analysis;
@@ -48,25 +48,39 @@ export async function POST(request: Request) {
   `;
 
   let reviewAdded = 0;
+  let reviewStrengthened = 0;
   for (const correction of analysis.corrections) {
+    const existing = await sql`
+      SELECT id FROM review_items
+      WHERE account_id = ${account.id}
+        AND prompt_ja = ${correction.review_prompt_ja}
+        AND answer_en = ${correction.review_answer_en}
+      LIMIT 1
+    `;
+
     await sql`
       INSERT INTO review_items (
         account_id, source_session_id, category, original_text, corrected_text,
-        explanation_ja, prompt_ja, answer_en, due_at
+        explanation_ja, prompt_ja, answer_en, due_at, occurrences, priority
       ) VALUES (
         ${account.id}, ${sessionId}, ${correction.category}, ${correction.original}, ${correction.corrected},
-        ${correction.explanation_ja}, ${correction.review_prompt_ja}, ${correction.review_answer_en}, now()
+        ${correction.explanation_ja}, ${correction.review_prompt_ja}, ${correction.review_answer_en}, now(), 1, 1.4
       )
       ON CONFLICT (account_id, prompt_ja, answer_en)
       DO UPDATE SET
         source_session_id = EXCLUDED.source_session_id,
+        category = EXCLUDED.category,
         original_text = EXCLUDED.original_text,
         corrected_text = EXCLUDED.corrected_text,
         explanation_ja = EXCLUDED.explanation_ja,
+        occurrences = review_items.occurrences + 1,
+        priority = LEAST(6, review_items.priority + 0.55),
         due_at = LEAST(review_items.due_at, now())
     `;
-    reviewAdded++;
+
+    if (existing.length) reviewStrengthened += 1;
+    else reviewAdded += 1;
   }
 
-  return NextResponse.json({ analysis, reviewAdded });
+  return NextResponse.json({ analysis, reviewAdded, reviewStrengthened });
 }

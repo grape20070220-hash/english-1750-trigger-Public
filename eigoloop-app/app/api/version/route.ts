@@ -1,14 +1,13 @@
-export const dynamic = "force-dynamic";
-
-export async function GET() {
-  return Response.json(
-    {
-      app: "EigoLoop",
-      build: "2026-08-18-shadowing-v3",
-      freeMode: false,
-      historyAudio: true,
-      shadowing: true
-    },
-    { headers: { "Cache-Control": "no-store, max-age=0" } }
-  );
+import { NextResponse } from "next/server";
+export async function GET(){
+  return NextResponse.json({
+    build:"2026-08-18-learning-loop-v4",
+    freeMode:false,
+    shadowing:true,
+    progressDashboard:true,
+    smartWeaknessReview:true,
+    dailyGoal:true,
+    reminders:true,
+    conversationTuning:true
+  });
 }
