@@ -1,4 +1,4 @@
-const CACHE_NAME = "eigoloop-shell-v8";
+const CACHE_NAME = "eigoloop-shell-v9";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE = [OFFLINE_URL, "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
 
