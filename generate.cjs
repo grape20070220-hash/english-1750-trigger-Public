@@ -4,6 +4,8 @@ const zlib=require("zlib");
 const parts=fs.readdirSync(".").filter(x=>/^payload_\d+\.txt$/.test(x)).sort().map(x=>fs.readFileSync(x,"utf8")).join("");
 const files=JSON.parse(zlib.brotliDecompressSync(Buffer.from(parts,"base64")).toString("utf8"));
 const directOverrides=new Set([
+  "package.json",
+  "vercel.json",
   "components/AppShell.tsx",
   "components/Dashboard.tsx",
   "components/HistoryPanel.tsx",
@@ -11,6 +13,7 @@ const directOverrides=new Set([
   "components/ReviewPanel.tsx",
   "components/SpeakPanel.tsx",
   "lib/auth.ts",
+  "lib/webPush.ts",
   "db/schema.sql",
   "public/sw.js",
   "app/api/me/route.ts",
@@ -20,6 +23,10 @@ const directOverrides=new Set([
   "app/api/version/route.ts",
   "app/api/conversations/start/route.ts",
   "app/api/conversations/finish/route.ts",
+  "app/api/push/public-key/route.ts",
+  "app/api/push/subscription/route.ts",
+  "app/api/push/test/route.ts",
+  "app/api/push/cron/[hour]/route.ts",
 ]);
 for(const [name,entry] of Object.entries(files)){
   if(name==="lib/freeAnalysis.ts") continue;
@@ -30,4 +37,4 @@ for(const [name,entry] of Object.entries(files)){
   else fs.writeFileSync(name,String(entry),"utf8");
 }
 if(fs.existsSync("lib/freeAnalysis.ts")) fs.unlinkSync("lib/freeAnalysis.ts");
-console.log(`Generated EigoLoop source with ${directOverrides.size} protected learning-loop overrides; legacy free mode removed`);
+console.log(`Generated EigoLoop source with ${directOverrides.size} protected overrides; Web Push enabled`);
