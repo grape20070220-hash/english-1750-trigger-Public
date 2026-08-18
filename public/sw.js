@@ -1,4 +1,4 @@
-const CACHE_NAME = "eigoloop-shell-v2";
+const CACHE_NAME = "eigoloop-shell-v3";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE = [
   OFFLINE_URL,
@@ -14,9 +14,17 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+    caches.keys().then((keys) => Promise.all(
+      keys
+        .filter((key) => key.startsWith("eigoloop-") && key !== CACHE_NAME)
+        .map((key) => caches.delete(key))
+    ))
   );
   self.clients.claim();
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", (event) => {
@@ -28,12 +36,13 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(async () => (await caches.match(OFFLINE_URL)) || Response.error())
+      fetch(request, { cache: "no-store" })
+        .catch(async () => (await caches.match(OFFLINE_URL)) || Response.error())
     );
     return;
   }
 
-  if (url.pathname.startsWith("/_next/static/") || /\.(?:png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(url.pathname)) {
+  if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -44,6 +53,19 @@ self.addEventListener("fetch", (event) => {
           return response;
         })
         .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  if (/\.(?:png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(url.pathname)) {
+    event.respondWith(
+      caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      }))
     );
   }
 });
