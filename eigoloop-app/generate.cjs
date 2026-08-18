@@ -7,6 +7,8 @@ const directOverrides=new Set([
   "package.json",
   "vercel.json",
   "components/AppShell.tsx",
+  "components/ApiBudgetPanel.tsx",
+  "components/ApiBudgetSummary.tsx",
   "components/Dashboard.tsx",
   "components/HistoryPanel.tsx",
   "components/PwaRegister.tsx",
@@ -18,6 +20,7 @@ const directOverrides=new Set([
   "db/schema.sql",
   "public/sw.js",
   "app/api/me/route.ts",
+  "app/api/api-budget/route.ts",
   "app/api/realtime/connect/route.ts",
   "app/api/review/route.ts",
   "app/api/review/grade/route.ts",
@@ -40,4 +43,4 @@ for(const [name,entry] of Object.entries(files)){
   else fs.writeFileSync(name,String(entry),"utf8");
 }
 if(fs.existsSync("lib/freeAnalysis.ts")) fs.unlinkSync("lib/freeAnalysis.ts");
-console.log(`Generated EigoLoop source with ${directOverrides.size} protected overrides; learning coach suite enabled`);
+console.log(`Generated EigoLoop source with ${directOverrides.size} protected overrides; API budget visibility enabled`);
