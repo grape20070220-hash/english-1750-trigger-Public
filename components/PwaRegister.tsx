@@ -60,6 +60,8 @@ export default function PwaRegister() {
     if (!("serviceWorker" in navigator)) return;
 
     let reloading = false;
+    let syncTimer: ReturnType<typeof setInterval> | null = null;
+    let activeRegistration: ServiceWorkerRegistration | null = null;
     const onControllerChange = () => {
       if (reloading) return;
       reloading = true;
@@ -74,6 +76,7 @@ export default function PwaRegister() {
           await Promise.all(keys.filter((key) => key.startsWith("eigoloop-") && key !== CACHE_NAME).map((key) => caches.delete(key)));
         }
         const registration = await navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(BUILD_ID)}`, { scope: "/", updateViaCache: "none" });
+        activeRegistration = registration;
         const activateWaiting = () => registration.waiting?.postMessage({ type: "SKIP_WAITING" });
         activateWaiting();
         registration.addEventListener("updatefound", () => {
@@ -93,12 +96,17 @@ export default function PwaRegister() {
     };
 
     void installLatest();
+    syncTimer = setInterval(() => {
+      if (activeRegistration) void syncPushSubscription(activeRegistration);
+    }, 30 * 1000);
+
     const onVisible = () => {
       if (document.visibilityState === "visible") void installLatest();
     };
     document.addEventListener("visibilitychange", onVisible);
 
     return () => {
+      if (syncTimer) clearInterval(syncTimer);
       navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
       document.removeEventListener("visibilitychange", onVisible);
     };
