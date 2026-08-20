@@ -1,0 +1,1 @@
+document.addEventListener('DOMContentLoaded',()=>{requestAnimationFrame(()=>{try{const active=document.querySelector('[data-v="home"].on');if(active&&typeof home==='function')home();}catch(e){console.error('GrammarLoop boot64',e)}})});
