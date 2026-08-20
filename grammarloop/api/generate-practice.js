@@ -13,7 +13,7 @@ async function callOpenAI(body,maxOutputTokens){
   if(!r.ok)return {ok:false,status:502,error:'OpenAI API request failed',detail:data.error?.message||'Unknown error'};
   return {ok:true,data};
 }
-module.exports=async function handler(req,res){
+export default async function handler(req,res){
   if(req.method==='GET')return res.status(200).json({configured:Boolean(process.env.OPENAI_API_KEY),model:'gpt-5-mini',feature:'practice-variants-v2'});
   if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});
   if(!process.env.OPENAI_API_KEY)return res.status(503).json({error:'OPENAI_API_KEY is not configured'});
@@ -38,4 +38,4 @@ module.exports=async function handler(req,res){
   if(!valid(out))return res.status(502).json({error:'AI practice validation failed'});
   const stamp=Date.now();out.items=out.items.map((v,i)=>({...v,id:`pv-${b.grammarId}-${stamp}-${i}-${Math.random().toString(36).slice(2,6)}`}));
   return res.status(200).json(out);
-};
+}
