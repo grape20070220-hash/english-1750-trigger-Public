@@ -1,5 +1,5 @@
-const CACHE='grammarloop-v12-ai-review-variants';
-const CORE=['/','/manifest.json','/data.js','/app.js','/textbook-ui.js','/boot64.js','/review-ui-v3.js','/review-ai-v4.js','/textbook/perfect.json','/textbook/inf.json','/textbook/gerund.json','/textbook/passive.json','/textbook/relative.json','/textbook/compare.json','/textbook/if.json','/textbook/part.json','/icon-192.png','/icon-512.png'];
+const CACHE='grammarloop-v13-lesson-ai-and-reading-fix';
+const CORE=['/','/manifest.json','/data.js','/app.js','/textbook-ui.js','/boot64.js','/review-ui-v3.js','/review-ai-v4.js','/lesson-ai-v1.js','/textbook/perfect.json','/textbook/inf.json','/textbook/gerund.json','/textbook/passive.json','/textbook/relative.json','/textbook/compare.json','/textbook/if.json','/textbook/part.json','/icon-192.png','/icon-512.png'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)))});
 self.addEventListener('activate',e=>e.waitUntil((async()=>{for(const k of await caches.keys())if(k!==CACHE)await caches.delete(k);await self.clients.claim()})()));
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET'||new URL(e.request.url).pathname.startsWith('/api/'))return;if(e.request.mode==='navigate'){e.respondWith(fetch(e.request).then(r=>{const x=r.clone();caches.open(CACHE).then(c=>c.put('/',x));return r}).catch(()=>caches.match('/')));return}e.respondWith(fetch(e.request).then(x=>{const y=x.clone();caches.open(CACHE).then(c=>c.put(e.request,y));return x}).catch(()=>caches.match(e.request))) });
